@@ -1,10 +1,9 @@
 const discord = require('discord.js');
 const { OpusEncoder } = require('@discordjs/opus');
 const bot = new discord.Client();
-const token = 'NzIwMzE0NTM1OTUyNzc3Mjg3.XuFCog.ItO5ia-FaHRSrFu096-PH1e0AQ4';
 const dados = require('./dados.json');
 
-bot.login(token);
+bot.login(dados.token);
 bot.on('ready', () => {
     console.log('Bot On');
 })
