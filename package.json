@@ -20,8 +20,10 @@
   "homepage": "https://github.com/EduardoPD1921/Bot-Discord#readme",
   "dependencies": {
     "@discordjs/opus": "^0.3.2",
+    "discord-youtube-api": "^0.1.0",
     "discord.js": "^12.2.0",
-    "ffmpeg": "0.0.4"
+    "ffmpeg": "0.0.4",
+    "ytdl-core": "^2.1.7"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"

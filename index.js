@@ -2,6 +2,9 @@ const discord = require('discord.js');
 const { OpusEncoder } = require('@discordjs/opus');
 const bot = new discord.Client();
 const dados = require('./dados.json');
+const ytdl = require('ytdl-core');
+const Youtube = require('discord-youtube-api');
+const youtube = new Youtube('AIzaSyBPY6kY5Fl2QBVqbA0pf9dUUvG0ftJRuN8');
 
 bot.login(dados.token);
 bot.on('ready', () => {
@@ -15,6 +18,31 @@ function numeroAleatorio(range) {
     const numero = Math.floor(Math.random() * range);
 
     return numero;
+}
+
+function youtubeMusic(message, search) {
+    const streamOptions = {seek: 0, volume: 1};
+
+    const con = message.member.voice.channel.join().then(connection => {
+        console.log('entrou');
+        console.log(search);
+        const teste = youtube.searchVideos(search).then(result => {
+            const searchResult = result.url;
+            const stream = ytdl(searchResult, {filter: 'audioonly'});
+            const dispatcher = connection.play(stream, streamOptions);
+        })
+    })
+    /*const voiceChannel = message.member.voiceChannel;
+
+    voiceChannel.join().then(connection => {
+        console.log('teste');
+        const stream = ytdl('https://www.youtube.com/watch?v=FxVRXGraRtc', {filter: 'audioonly'});
+        const dispatcher = connection.playStream(stream, streamOptions);
+        dispatcher.on('end', end => {
+            console.log('teste2');
+            voiceChannel.leave();
+        })
+    })*/
 }
 
 function audio(file, message) {
@@ -92,60 +120,56 @@ setInterval(() => {
 
 
 bot.on('message', msg => {
-    const arrayMessage = msg.content.split(' ');
-
-    try {
-        if (arrayMessage[0] == '-japa') {
-            if (arrayMessage.slice(1) == 'help') {
-                msg.reply(dados.comandos);
-            } else if (arrayMessage.slice(1) == 'status') {
-                msg.reply(`Meu pau se encontra com ${dSize}km de tamanho e expessura`);
-            } else if (arrayMessage.slice(1) == 'salve') {
-                dSize++;
-                msg.reply('Você é legal, meu pau acabou de aumentar 1km e está cada vez maior!');
-            } else if (arrayMessage.slice(1) == 'meia') {
-                audio('Audios/meia.wav', msg);
-            } else if (arrayMessage.slice(1) == 'dorme') {
-                japaDorme(msg);
-            } else if (arrayMessage.slice(1) == 'moo') {
-                audio('Audios/sleepso.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'slk') {
-                audio('Audios/seloco.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'obama') {
-                audio('Audios/beatbox.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'bigman') {
-                audio('Audios/bigman.mp3', msg);
-            }else if (arrayMessage.slice(1) == 'melody') {
-                audio('Audios/japamelody.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'eduardo') {
-                audio('Audios/eduardomelody.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'online') {
-                msg.reply(`Estou online fazem ${tempo} horas de pura dor e sofrimento!`);
-            } else if (arrayMessage.slice(1) == 'pao') {
-                audio('Audios/3paes.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'coca') {
-                audio('Audios/cocalatao.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'delicia') {
-                audio('Audios/quedelicia.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'recalque') {
-                audio('Audios/conhece.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'talks') {
-                audio('Audios/bigtalks.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'forga') {
-                audio('Audios/forga.wav', msg);
-            } else if (arrayMessage.slice(1) == 'ednaldo') {
-                audio('Audios/ednaldo.mp3', msg);
-            } else if (arrayMessage.slice(1) == 'terraria') {
-                audio('Audios/terraria.wav', msg);
-            } else if (arrayMessage.slice(1) == 'frases') {
-                frasesAleat(msg);
-            } else if (arrayMessage.slice(1) == 'foto') {
-                imagemAleat(msg);
-            } else if (arrayMessage.slice(1) == 'porta') {
-                audio('Audios/porta.wav', msg);
-            }
+    if (msg.content.startsWith(dados.prefix)) {
+        const command = msg.content.split(' ');
+        if (command[1] == 'play') {
+            const search = msg.content.split('!')[1];
+            youtubeMusic(msg, search);
+        } else if (command[1] == 'ednaldo') {
+            audio('Audios/ednaldo.mp3', msg);
+        } else if (command[1] == 'help') {
+            msg.reply(dados.comandos);
+        } else if (command[1] == 'salve') {
+            dSize++;
+            msg.reply('Você é legal, meu pau acabou de aumentar 1km e está cada vez maior!');
+        } else if (command[1] == 'meia') {
+            audio('Audios/meia.wav', msg);
+        } else if (command[1] == 'dorme') {
+            japaDorme(msg);
+        } else if (command[1] == 'moo') {
+            audio('Audios/sleepso.mp3', msg);
+        } else if (command[1] == 'slk') {
+            audio('Audios/seloco.mp3', msg);
+        } else if (command[1] == 'obama') {
+            audio('Audios/beatbox.mp3', msg);
+        } else if (command[1] == 'bigman') {
+            audio('Audios/bigman.mp3', msg);
+        } else if (command[1] == 'melody') {
+            audio('Audios/japamelody.mp3', msg);
+        } else if (command[1] == 'eduardo') {
+            audio('Audios/eduardomelody.mp3', msg);
+        } else if (command[1] == 'online') {
+            msg.reply(`Estou online fazem ${tempo} horas de pura dor e sofrimento!`);
+        } else if (command[1] == 'pao') {
+            audio('Audios/3paes.mp3', msg);
+        } else if (command[1] == 'coca') {
+            audio('Audios/cocalatao.mp3', msg);
+        } else if (command[1] == 'deicia') {
+            audio('Audios/quedelicia.mp3', msg);
+        } else if (command[1] == 'recalque') {
+            audio('Audios/conhece.mp3', msg);
+        } else if (command[1] == 'talks') {
+            audio('Audios/bigtalks.mp3', msg);
+        } else if (command[1] == 'forga') {
+            audio('Audios/forga.wav', msg);
+        } else if (command[1] == 'terraria') {
+            audio('Audios/terraria.wav', msg);
+        } else if (command[1] == 'frases') {
+            frasesAleat(msg);
+        } else if (command[1] == 'foto') {
+            imagemAleat(msg);
+        } else if (command[1] == 'porta') {
+            audio('Audios/porta.wav', msg);
         }
-    } catch(e) {
-        console.log(e);
     }
 })
