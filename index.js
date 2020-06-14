@@ -24,12 +24,11 @@ function youtubeMusic(message, search) {
     const streamOptions = {seek: 0, volume: 1};
 
     const con = message.member.voice.channel.join().then(connection => {
-        console.log('entrou');
-        console.log(search);
         const teste = youtube.searchVideos(search).then(result => {
             const searchResult = result.url;
             const stream = ytdl(searchResult, {filter: 'audioonly'});
             const dispatcher = connection.play(stream, streamOptions);
+            message.reply(`Pode pá que está tocando ${searchResult} neste momento`);
         })
     })
     /*const voiceChannel = message.member.voiceChannel;
