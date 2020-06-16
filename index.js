@@ -4,15 +4,21 @@ const bot = new discord.Client();
 const dados = require('./dados.json');
 const ytdl = require('ytdl-core');
 const Youtube = require('discord-youtube-api');
-const youtube = new Youtube('AIzaSyBPY6kY5Fl2QBVqbA0pf9dUUvG0ftJRuN8');
+const youtube = new Youtube(dados.ytToken);
 
 bot.login(dados.token);
+
 bot.on('ready', () => {
     console.log('Bot On');
+    const channel = bot.channels.cache.get('721868283695071282');
+    channel.send('Olá, sou o Japa real e irei ser seu escravo para viver em intensa dor e sofrimento constante! Para saber os códigos, digite -japa help.');
 })
 
 let dSize = 0;
 let tempo = 0;
+let queue = new Array();
+let queuePosition = 0;
+let isPlaying = false;
 
 function numeroAleatorio(range) {
     const numero = Math.floor(Math.random() * range);
@@ -20,38 +26,80 @@ function numeroAleatorio(range) {
     return numero;
 }
 
+function musicCurrentlyPlaying(num) {
+    const channel = bot.channels.cache.get('721868283695071282');
+    return channel.send(`Pode pá que está tocando ${queue[num]} neste momento`);
+}
+
+function queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions) {
+    queuePosition++;
+
+    if (!queue[queuePosition]) {
+        const channel = bot.channels.cache.get('721868283695071282');
+        channel.send('A fila acabou!');
+        queue.splice(0, queuePosition);
+        queuePosition = 0;
+        isPlaying = false;
+    } else {
+        stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
+        dispatcher = connection.play(stream, streamOptions);
+        musicCurrentlyPlaying(queuePosition);
+        dispatcher.on('finish', () => {
+            queueLoop(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
+        })
+    }
+}
+
+function queueLoop(dispatcher, message, queue, queuePosition, stream, connection, streamOptions) {
+    queuePosition++;
+
+    if (!queue[queuePosition]) {
+        const channel = bot.channels.cache.get('721868283695071282');
+        channel.send('A fila acabou!');
+        queue.splice(0, queuePosition);
+        queuePosition = 0;
+        isPlaying = false;
+        
+    } else {
+        stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
+        dispatcher = connection.play(stream, streamOptions);
+        musicCurrentlyPlaying(queuePosition);
+        dispatcher.on('finish', () => {
+            queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
+        })
+    }
+}
+
 function youtubeMusic(message, search) {
-    const streamOptions = {seek: 0, volume: 1};
+    try{
+        if (isPlaying == false) {
+            const streamOptions = {seek: 0, volume: 1};
+            isPlaying = true;
 
-    const con = message.member.voice.channel.join().then(connection => {
-        const teste = youtube.searchVideos(search).then(result => {
-            const searchResult = result.url;
-            const stream = ytdl(searchResult, {filter: 'audioonly'});
-            const dispatcher = connection.play(stream, streamOptions);
-            message.reply(`Pode pá que está tocando ${searchResult} neste momento`);
-        })
-    })
-    /*const voiceChannel = message.member.voiceChannel;
-
-    voiceChannel.join().then(connection => {
-        console.log('teste');
-        const stream = ytdl('https://www.youtube.com/watch?v=FxVRXGraRtc', {filter: 'audioonly'});
-        const dispatcher = connection.playStream(stream, streamOptions);
-        dispatcher.on('end', end => {
-            console.log('teste2');
-            voiceChannel.leave();
-        })
-    })*/
+            const con = message.member.voice.channel.join().then(connection => {
+                const searching = youtube.searchVideos(search).then(result => {
+                    queue.push(result.url);
+                    let stream = ytdl(queue[queuePosition], {highWaterMark: 1<<25}, {type: 'opus'});
+                    let dispatcher = connection.play(stream, streamOptions);
+                    musicCurrentlyPlaying(queuePosition);
+                    dispatcher.on('finish', () => {
+                        queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
+                    });
+                })
+            })
+        } else if (isPlaying == true) {
+            const searching = youtube.searchVideos(search).then(result => {
+                queue.push(result.url);
+                const channel = bot.channels.cache.get('721868283695071282');
+                channel.send(`${result.url} foi adicionado na fila`);
+            })
+        }
+    } catch(e) {
+        message.reply('Você não está conectado em nenhum canal de voz, se fudeu pra caralho');
+    }
 }
 
 function audio(file, message) {
-    /*if (!message.member.voice.channel) {
-        message.reply('Você não está conectado em nenhum canal de voz, se fudeu pra caralho');
-    } else {
-        const con = message.member.voice.channel.join().then(connection => {
-            const dispatcher = connection.play(file, {volume: 0.75});
-        })
-    }*/
     try {
         const con = message.member.voice.channel.join().then(connection => {
             const dispatcher = connection.play(file, {volume: 0.75});
@@ -109,15 +157,6 @@ setInterval(() => {
     tempo++;
 }, 3600000)
 
-/*setInterval(function () {
-    let horario = new Date();
-    console.log(horario.getSeconds());
-    if (horario.getSeconds() == 50) {
-        meiaNoite();
-    }
-}, 1000)*/
-
-
 bot.on('message', msg => {
     if (msg.content.startsWith(dados.prefix)) {
         const command = msg.content.split(' ');
@@ -169,6 +208,14 @@ bot.on('message', msg => {
             imagemAleat(msg);
         } else if (command[1] == 'porta') {
             audio('Audios/porta.wav', msg);
+        } else if (command[1] == 'status') {
+            msg.reply(`Meu pau se encontra com ${dSize}km de tamanho e expessura`);
+        } else if (command[1] == 'fila') {
+            if (queue = ' ') {
+                msg.reply('A fila está vazia!');
+            } else {
+                msg.reply(queue);
+            }
         }
     }
 })
