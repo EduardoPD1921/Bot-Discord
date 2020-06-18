@@ -19,6 +19,9 @@ let tempo = 0;
 let queue = new Array();
 let queuePosition = 0;
 let isPlaying = false;
+let dispatcher;
+let stream;
+const streamOptions = {seek: 0, volume: 1};
 
 function numeroAleatorio(range) {
     const numero = Math.floor(Math.random() * range);
@@ -31,6 +34,32 @@ function musicCurrentlyPlaying(num) {
     return channel.send(`Pode pá que está tocando ${queue[num]} neste momento`);
 }
 
+function skip(message) {
+    if (queue[queuePosition + 1] == undefined) {
+        queuePosition++;
+        queue.splice(0, queuePosition);
+        dispatcher.pause();
+        message.reply('A fila acabou!');
+        isPlaying = false;
+        queuePosition = 0;
+    } else {
+        if (stream == undefined) {
+            message.reply('Não tem nada na fila!');
+        } else {
+            const channel = bot.channels.cache.get('721868283695071282');
+            channel.send(`Pode pá que está tocando ${queue[queuePosition]} neste momento`);
+            queuePosition++;
+            const con = message.member.voice.channel.join().then(connection => {
+                stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
+                dispatcher = connection.play(stream, streamOptions);
+                dispatcher.on('finish', () => {
+                    queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
+                })
+            })
+        }
+    }
+}
+
 function queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions) {
     queuePosition++;
 
@@ -40,6 +69,7 @@ function queueMusic(dispatcher, message, queue, queuePosition, stream, connectio
         queue.splice(0, queuePosition);
         queuePosition = 0;
         isPlaying = false;
+        console.log(queue);
     } else {
         stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
         dispatcher = connection.play(stream, streamOptions);
@@ -59,7 +89,7 @@ function queueLoop(dispatcher, message, queue, queuePosition, stream, connection
         queue.splice(0, queuePosition);
         queuePosition = 0;
         isPlaying = false;
-        
+        console.log(queue);
     } else {
         stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
         dispatcher = connection.play(stream, streamOptions);
@@ -73,18 +103,16 @@ function queueLoop(dispatcher, message, queue, queuePosition, stream, connection
 function youtubeMusic(message, search) {
     try{
         if (isPlaying == false) {
-            const streamOptions = {seek: 0, volume: 1};
             isPlaying = true;
-
             const con = message.member.voice.channel.join().then(connection => {
                 const searching = youtube.searchVideos(search).then(result => {
                     queue.push(result.url);
-                    let stream = ytdl(queue[queuePosition], {highWaterMark: 1<<25}, {type: 'opus'});
-                    let dispatcher = connection.play(stream, streamOptions);
+                    stream = ytdl(queue[queuePosition], {highWaterMark: 1<<25}, {type: 'opus'});
+                    dispatcher = connection.play(stream, streamOptions);
                     musicCurrentlyPlaying(queuePosition);
                     dispatcher.on('finish', () => {
                         queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
-                    });
+                    })
                 })
             })
         } else if (isPlaying == true) {
@@ -101,9 +129,13 @@ function youtubeMusic(message, search) {
 
 function audio(file, message) {
     try {
-        const con = message.member.voice.channel.join().then(connection => {
-            const dispatcher = connection.play(file, {volume: 0.75});
-        })
+        if (isPlaying = false) {
+            const con = message.member.voice.channel.join().then(connection => {
+                const dispatcher = connection.play(file, {volume: 0.75});
+            })
+        } else if (isPlaying = true) {
+            message.reply('O bot está ocupado tocando musiquinhas!');
+        }
     } catch(e) {
         message.reply('Você não está conectado em nenhum canal de voz, se fudeu pra caralho');
     }
@@ -216,6 +248,10 @@ bot.on('message', msg => {
             } else {
                 msg.reply(queue);
             }
+        } else if (command[1] == 'skip') {
+            skip(msg);
+        } else if (command[1] == 'debug') {
+            console.log(queue);
         }
     }
 })
