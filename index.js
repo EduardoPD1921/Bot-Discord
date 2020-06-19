@@ -15,10 +15,14 @@ bot.on('ready', () => {
 })
 
 let dSize = 0;
-let tempo = 0;
+let hora = 0;
+let minuto = 0;
 let queue = new Array();
 let queuePosition = 0;
 let isPlaying = false;
+let dispatcher;
+let stream;
+const streamOptions = {seek: 0, volume: 1};
 
 function numeroAleatorio(range) {
     const numero = Math.floor(Math.random() * range);
@@ -29,6 +33,32 @@ function numeroAleatorio(range) {
 function musicCurrentlyPlaying(num) {
     const channel = bot.channels.cache.get('721868283695071282');
     return channel.send(`Pode pá que está tocando ${queue[num]} neste momento`);
+}
+
+function skip(message) {
+    if (queue[queuePosition + 1] == undefined && stream != null) {
+        queuePosition++;
+        queue.splice(0, queuePosition);
+        dispatcher.pause();
+        message.reply('A fila acabou!');
+        isPlaying = false;
+        queuePosition = 0;
+        stream = null;
+    } else {
+        if (stream == null) {
+            message.reply('Não tem nada na fila!');
+        } else {
+            queue.splice(queuePosition, 1);
+            musicCurrentlyPlaying(queuePosition);
+            const con = message.member.voice.channel.join().then(connection => {
+                stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
+                dispatcher = connection.play(stream, streamOptions);
+                dispatcher.on('finish', () => {
+                    queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
+                })
+            })
+        }
+    }
 }
 
 function queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions) {
@@ -59,7 +89,7 @@ function queueLoop(dispatcher, message, queue, queuePosition, stream, connection
         queue.splice(0, queuePosition);
         queuePosition = 0;
         isPlaying = false;
-        
+        console.log(queue);
     } else {
         stream = ytdl(queue[queuePosition], {filter: 'audioonly'}, {type: 'opus'});
         dispatcher = connection.play(stream, streamOptions);
@@ -73,18 +103,16 @@ function queueLoop(dispatcher, message, queue, queuePosition, stream, connection
 function youtubeMusic(message, search) {
     try{
         if (isPlaying == false) {
-            const streamOptions = {seek: 0, volume: 1};
             isPlaying = true;
-
             const con = message.member.voice.channel.join().then(connection => {
                 const searching = youtube.searchVideos(search).then(result => {
                     queue.push(result.url);
-                    let stream = ytdl(queue[queuePosition], {highWaterMark: 1<<25}, {type: 'opus'});
-                    let dispatcher = connection.play(stream, streamOptions);
+                    stream = ytdl(queue[queuePosition], {highWaterMark: 1<<25}, {type: 'opus'});
+                    dispatcher = connection.play(stream, streamOptions);
                     musicCurrentlyPlaying(queuePosition);
                     dispatcher.on('finish', () => {
                         queueMusic(dispatcher, message, queue, queuePosition, stream, connection, streamOptions);
-                    });
+                    })
                 })
             })
         } else if (isPlaying == true) {
@@ -101,9 +129,13 @@ function youtubeMusic(message, search) {
 
 function audio(file, message) {
     try {
-        const con = message.member.voice.channel.join().then(connection => {
-            const dispatcher = connection.play(file, {volume: 0.75});
-        })
+        if (isPlaying == false) {
+            const con = message.member.voice.channel.join().then(connection => {
+                const dispatcher = connection.play(file, {volume: 0.75});
+            })
+        } else if (isPlaying == true) {
+            message.reply('O bot está ocupado tocando musiquinhas!');
+        }
     } catch(e) {
         message.reply('Você não está conectado em nenhum canal de voz, se fudeu pra caralho');
     }
@@ -154,8 +186,12 @@ setInterval(() => {
 }, 1000)
 
 setInterval(() => {
-    tempo++;
+    hora++;
 }, 3600000)
+
+setInterval(() => {
+    minuto++;
+}, 60000)
 
 bot.on('message', msg => {
     if (msg.content.startsWith(dados.prefix)) {
@@ -187,7 +223,7 @@ bot.on('message', msg => {
         } else if (command[1] == 'eduardo') {
             audio('Audios/eduardomelody.mp3', msg);
         } else if (command[1] == 'online') {
-            msg.reply(`Estou online fazem ${tempo} horas de pura dor e sofrimento!`);
+            msg.reply(`Estou online fazem ${hora} horas e ${minuto} minutos de pura dor e sofrimento!`);
         } else if (command[1] == 'pao') {
             audio('Audios/3paes.mp3', msg);
         } else if (command[1] == 'coca') {
@@ -211,11 +247,13 @@ bot.on('message', msg => {
         } else if (command[1] == 'status') {
             msg.reply(`Meu pau se encontra com ${dSize}km de tamanho e expessura`);
         } else if (command[1] == 'fila') {
-            if (queue = ' ') {
-                msg.reply('A fila está vazia!');
-            } else {
-                msg.reply(queue);
-            }
+             if (queue.length == 0) {
+                 msg.reply('A fila está vazia!');
+             } else {
+                 msg.reply(queue);
+             }
+        } else if (command[1] == 'skip') {
+            skip(msg);
         }
     }
 })
