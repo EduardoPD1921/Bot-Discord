@@ -191,6 +191,9 @@ setInterval(() => {
 
 setInterval(() => {
     minuto++;
+    if (minuto == 60) {
+        minuto = 0;
+    }
 }, 60000)
 
 bot.on('message', msg => {
